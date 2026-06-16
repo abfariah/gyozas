@@ -11,6 +11,13 @@ IntGenerator = Callable[[np.random.Generator], int]
 IntOrIntGenerator = int | IntGenerator
 
 
+def _resolve_int(value: IntOrIntGenerator, rng: np.random.Generator) -> int:
+    """Resolve a parameter that may be an int or a callable ``rng -> int`` to a concrete int."""
+    if isinstance(value, int):
+        return value
+    return value(rng)
+
+
 def _arg_choice_without_replacement(n_samples, weights, rng) -> NDArray[np.int64]:
     wc = np.cumsum(weights)
     indices = []
@@ -243,16 +250,11 @@ class CombinatorialAuctionGenerator(InstanceGenerator):
         rng=None,
     ) -> Model:
         rng = sanitize_rng(rng, default=self.rng)
-        if isinstance(n_items, Callable):
-            n_items = n_items(rng)  # ty: ignore[call-top-callable]
-        if isinstance(n_bids, Callable):
-            n_bids = n_bids(rng)  # ty: ignore[call-top-callable]
-        if isinstance(min_value, Callable):
-            min_value = min_value(rng)  # ty: ignore[call-top-callable]
-        if isinstance(max_value, Callable):
-            max_value = max_value(rng)  # ty: ignore[call-top-callable]
-        if isinstance(max_n_sub_bids, Callable):
-            max_n_sub_bids = max_n_sub_bids(rng)  # ty: ignore[call-top-callable]
+        n_items = _resolve_int(n_items, rng)
+        n_bids = _resolve_int(n_bids, rng)
+        min_value = _resolve_int(min_value, rng)
+        max_value = _resolve_int(max_value, rng)
+        max_n_sub_bids = _resolve_int(max_n_sub_bids, rng)
         if not (max_value >= min_value):
             raise ValueError("Parameters max_value and min_value must be defined such that: min_value <= max_value.")
         if not (0 <= add_item_prob <= 1):
