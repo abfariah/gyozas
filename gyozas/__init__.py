@@ -12,7 +12,7 @@ from gyozas.dynamics.branching import BranchingDynamics, ExtraBranchingActions
 from gyozas.dynamics.node_selection import NodeSelectionDynamics
 from gyozas.dynamics.probing import ProbeLedger, ProbingDynamics
 from gyozas.environment import Environment
-from gyozas.gymnasium_wrapper import GymnasiumWrapper
+from gyozas.gymnasium_wrapper import GymnasiumWrapper, ProbingGymnasiumWrapper
 from gyozas.informations.empty import Empty
 from gyozas.instances import InstanceGenerator
 from gyozas.instances.capacitated_facility_location import CapacitatedFacilityLocationGenerator
@@ -56,6 +56,7 @@ __all__ = [
     "PrimalIntegral",
     "ProbeLedger",
     "ProbingDynamics",
+    "ProbingGymnasiumWrapper",
     "SetCoverGenerator",
     "SolvingTime",
     "StrongBranchingLPIterations",
