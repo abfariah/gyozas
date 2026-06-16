@@ -17,6 +17,40 @@ _BRANCHDIR_UP = 1
 _SCORING_FUNCTIONS = ("product", "sum", "min")
 
 
+class ProbeLedger:
+    """Per-variable strong-branch evaluation history for the probing setting.
+
+    SCIP's internal pseudocost *count* is not exposed by PySCIPOpt, so ``ProbingDynamics``
+    records its own probing history here: for each variable (keyed by the stable transformed
+    index ``var.getIndex()``) the number of times it has been strong-branched this episode and
+    the node at which it was last evaluated. A ``NodeBipartiteProbing`` observation can share
+    the same ledger to expose these as per-variable features.
+
+    The ledger is cleared (not replaced) at the start of each episode, so a reference handed to
+    an observation stays valid across episodes.
+    """
+
+    def __init__(self) -> None:
+        self._count: dict[int, int] = {}
+        self._last_node: dict[int, int] = {}
+
+    def clear(self) -> None:
+        self._count.clear()
+        self._last_node.clear()
+
+    def record(self, var_index: int, node: int) -> None:
+        self._count[var_index] = self._count.get(var_index, 0) + 1
+        self._last_node[var_index] = node
+
+    def count(self, var_index: int) -> int:
+        """Number of times the variable has been strong-branched this episode."""
+        return self._count.get(var_index, 0)
+
+    def last_node(self, var_index: int) -> int:
+        """Node number at which the variable was last evaluated, or -1 if never."""
+        return self._last_node.get(var_index, -1)
+
+
 class ProbingOracle(Branchrule):
     """Branching rule that asks the agent which fractional variables to strong-branch.
 
@@ -29,7 +63,9 @@ class ProbingOracle(Branchrule):
     detection — propagate back into SCIP.
     """
 
-    def __init__(self, scip: Model, obs_event, action_event, die_event, scoring, itlim, pseudocost_weight) -> None:
+    def __init__(
+        self, scip: Model, obs_event, action_event, die_event, scoring, itlim, pseudocost_weight, ledger
+    ) -> None:
         self.scip = scip
         self.obs_event = obs_event
         self.action_event = action_event
@@ -37,6 +73,7 @@ class ProbingOracle(Branchrule):
         self.scoring = scoring
         self.itlim = itlim
         self.pseudocost_weight = pseudocost_weight
+        self.ledger = ledger
         self.obs: NDArray[np.int64] | None = None
         self.action = None
         self.count = 0
@@ -159,6 +196,7 @@ class ProbingOracle(Branchrule):
         results: dict = {}
         if not probed:
             return results
+        node = self.scip.getCurrentNode().getNumber()
         self.scip.startStrongbranch()
         try:
             for pos in probed:
@@ -168,6 +206,7 @@ class ProbingOracle(Branchrule):
                 )
                 if lperror:
                     continue
+                self.ledger.record(var.getIndex(), node)
                 gain_down = max(down - lpobj, 0.0)
                 gain_up = max(up - lpobj, 0.0)
                 # Seed global pseudocosts from valid, feasible probe directions.
@@ -245,9 +284,19 @@ class ProbingDynamics(ThreadedDynamics):
         LP iteration limit per strong-branch call (``-1`` for no limit).
     pseudocost_weight
         Weight in ``(0, 1]`` used when feeding probe gains into the global pseudocosts.
+    ledger
+        Optional :class:`ProbeLedger` recording per-variable evaluation history. Pass the same
+        instance to a ``NodeBipartiteProbing`` observation to expose probe counts as features.
+        Defaults to a fresh ledger, available as ``self.ledger``.
     """
 
-    def __init__(self, scoring: str = "product", itlim: int = -1, pseudocost_weight: float = 1.0) -> None:
+    def __init__(
+        self,
+        scoring: str = "product",
+        itlim: int = -1,
+        pseudocost_weight: float = 1.0,
+        ledger: "ProbeLedger | None" = None,
+    ) -> None:
         if scoring not in _SCORING_FUNCTIONS:
             raise ValueError(f"scoring must be one of {_SCORING_FUNCTIONS}, got {scoring!r}.")
         if not 0.0 < pseudocost_weight <= 1.0:
@@ -256,6 +305,7 @@ class ProbingDynamics(ThreadedDynamics):
         self.scoring = scoring
         self.itlim = itlim
         self.pseudocost_weight = pseudocost_weight
+        self.ledger = ledger if ledger is not None else ProbeLedger()
         self.action = None
         self.oracle: ProbingOracle
         self.model: Model
@@ -278,8 +328,16 @@ class ProbingDynamics(ThreadedDynamics):
         self.die_event.clear()
         self.infeasible_nodes = []
         self.feasible_nodes = []
+        self.ledger.clear()
         self.oracle = ProbingOracle(
-            model, self.obs_event, self.action_event, self.die_event, self.scoring, self.itlim, self.pseudocost_weight
+            model,
+            self.obs_event,
+            self.action_event,
+            self.die_event,
+            self.scoring,
+            self.itlim,
+            self.pseudocost_weight,
+            self.ledger,
         )
         model.includeBranchrule(
             self.oracle,

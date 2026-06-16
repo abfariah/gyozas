@@ -10,7 +10,7 @@ except PackageNotFoundError:
 from gyozas.dynamics import Dynamics
 from gyozas.dynamics.branching import BranchingDynamics, ExtraBranchingActions
 from gyozas.dynamics.node_selection import NodeSelectionDynamics
-from gyozas.dynamics.probing import ProbingDynamics
+from gyozas.dynamics.probing import ProbeLedger, ProbingDynamics
 from gyozas.environment import Environment
 from gyozas.gymnasium_wrapper import GymnasiumWrapper
 from gyozas.informations.empty import Empty
@@ -20,7 +20,7 @@ from gyozas.instances.combinatorial_auction import CombinatorialAuctionGenerator
 from gyozas.instances.files import FileGenerator
 from gyozas.instances.independent_set import IndependentSetGenerator
 from gyozas.instances.set_cover import SetCoverGenerator
-from gyozas.observations import NodeBipartite, NodeBipartiteEcole, NodeBipartiteSCIP
+from gyozas.observations import NodeBipartite, NodeBipartiteEcole, NodeBipartiteProbing, NodeBipartiteSCIP
 from gyozas.observations.meta_observation import MetaObservation
 from gyozas.rewards.done import Done
 from gyozas.rewards.integral_bound import DualIntegral, PrimalDualIntegral, PrimalIntegral
@@ -50,9 +50,11 @@ __all__ = [
     "NodeBipartite",
     "NodeBipartiteSCIP",
     "NodeBipartiteEcole",
+    "NodeBipartiteProbing",
     "NodeSelectionDynamics",
     "PrimalDualIntegral",
     "PrimalIntegral",
+    "ProbeLedger",
     "ProbingDynamics",
     "SetCoverGenerator",
     "SolvingTime",
