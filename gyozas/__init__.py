@@ -10,6 +10,7 @@ except PackageNotFoundError:
 from gyozas.dynamics import Dynamics
 from gyozas.dynamics.branching import BranchingDynamics, ExtraBranchingActions
 from gyozas.dynamics.node_selection import NodeSelectionDynamics
+from gyozas.dynamics.probing import ProbingDynamics
 from gyozas.environment import Environment
 from gyozas.gymnasium_wrapper import GymnasiumWrapper
 from gyozas.informations.empty import Empty
@@ -26,6 +27,8 @@ from gyozas.rewards.integral_bound import DualIntegral, PrimalDualIntegral, Prim
 from gyozas.rewards.lp_iterations import LPIterations
 from gyozas.rewards.nnodes import NNodes
 from gyozas.rewards.solving_time import SolvingTime
+from gyozas.rewards.strong_branching_lp_iterations import StrongBranchingLPIterations
+from gyozas.rewards.total_lp_iterations import TotalLPIterations
 
 __all__ = [
     "BranchingDynamics",
@@ -50,6 +53,9 @@ __all__ = [
     "NodeSelectionDynamics",
     "PrimalDualIntegral",
     "PrimalIntegral",
+    "ProbingDynamics",
     "SetCoverGenerator",
     "SolvingTime",
+    "StrongBranchingLPIterations",
+    "TotalLPIterations",
 ]
