@@ -182,6 +182,42 @@ NODE_SELECTION = {
 }
 
 
+class SetLimits(SetParameters):
+    """Instance generator modifier that sets SCIP solving limits.
+
+    Convenience wrapper around :class:`SetParameters` for the most common limits:
+    ``limits/time`` (wall-clock seconds), ``limits/nodes`` (branch-and-bound nodes),
+    and ``limits/gap`` (relative optimality gap). Only the limits you pass are set;
+    leaving an argument as ``None`` keeps SCIP's default for that limit. Like its
+    parent, it also accepts an arbitrary ``parameters`` mapping, with the explicit
+    limit arguments applied on top (so they take precedence over the same keys in
+    ``parameters``).
+
+    :param instance_generator: The instance generator to wrap.
+    :param time: Wall-clock solving time limit in seconds (``limits/time``).
+    :param nodes: Maximum number of branch-and-bound nodes (``limits/nodes``).
+    :param gap: Relative optimality gap at which to stop solving (``limits/gap``).
+    :param parameters: Additional SCIP parameters to set, as in :class:`SetParameters`.
+    """
+
+    def __init__(
+        self,
+        instance_generator: InstanceGenerator,
+        time: float | None = None,
+        nodes: int | None = None,
+        gap: float | None = None,
+        parameters: dict[str, Any] | None = None,
+    ) -> None:
+        parameters = dict(parameters) if parameters else {}
+        if time is not None:
+            parameters["limits/time"] = time
+        if nodes is not None:
+            parameters["limits/nodes"] = nodes
+        if gap is not None:
+            parameters["limits/gap"] = gap
+        super().__init__(instance_generator, parameters)
+
+
 SetNoCuts = partial(SetParameters, parameters=NO_CUT_PARAMS)
 SetNoHeuristics = partial(SetParameters, parameters=NO_HEURISTIC_PARAMS)
 SetNoDisplay = partial(SetParameters, parameters={"display/verblevel": 0})
@@ -195,3 +231,4 @@ SetBFSNodeSelection = partial(
     parameters=NODE_SELECTION
     | {"nodeselection/bfs/stdpriority": 536870911, "nodeselection/bfs/memsavepriority": 536870911},
 )
+SetOneHourLimit = partial(SetLimits, time=3600)
